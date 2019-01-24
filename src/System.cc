@@ -68,6 +68,7 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     if (!mapfilen.empty())
     {
         mapfile = (string)mapfilen;
+        cout << "file is not empty" << endl;
     }
 
     //Load ORB Vocabulary
@@ -325,26 +326,46 @@ void System::Reset()
 
 void System::Shutdown()
 {
+    cout<< "shutting down, saving map"<<endl;
+    if (is_save_map)
+        SaveMap(mapfile);
+    cout<< "map saved"<<endl;
     mpLocalMapper->RequestFinish();
     mpLoopCloser->RequestFinish();
     if(mpViewer)
     {
         mpViewer->RequestFinish();
+        cout << "Outside 1st while" << endl;
         while(!mpViewer->isFinished())
         {
             std::this_thread::sleep_for(std::chrono::microseconds(5000));
         }
     }
-
+     cout << "Outside 2nd while" << endl;
+     //Debugging
+     if(!mpLocalMapper->isFinished())
+     {
+        cout << "Local Mapper not finished" << endl;
+     }
+     else if(!mpLoopCloser->isFinished())
+     {
+        cout << "Loop Closing not finished" << endl;
+     }
+     else if(mpLoopCloser->isRunningGBA())
+     {
+        cout << "mpLoopCloser->isRunningGBA()" << endl;
+     }
     // Wait until all thread have effectively stopped
     while(!mpLocalMapper->isFinished() || !mpLoopCloser->isFinished() || mpLoopCloser->isRunningGBA())
     {
         std::this_thread::sleep_for(std::chrono::microseconds(5000));
     }
+    cout << "2nd while loop terminates" << endl;
     if(mpViewer)
         pangolin::BindToContext("ORB-SLAM2: Map Viewer");
-    if (is_save_map)
-        SaveMap(mapfile);
+    cout << "Shutdown function over" << endl;
+    // if (is_save_map)
+    //     SaveMap(mapfile);
 }
 
 void System::SaveTrajectoryTUM(const string &filename)
@@ -527,7 +548,9 @@ void System::SaveMap(const string &filename)
     }
     cout << "Saving Mapfile: " << mapfile << std::flush;
     boost::archive::binary_oarchive oa(out, boost::archive::no_header);
+    cout<<"Line 1"<<endl;
     oa << mpMap;
+    cout<<"Line 2"<<endl;
     oa << mpKeyFrameDatabase;
     cout << " ...done" << std::endl;
     out.close();
