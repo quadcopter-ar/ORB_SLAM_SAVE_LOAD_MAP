@@ -8,19 +8,22 @@ ChessBoardDetector::ChessBoardDetector()
 
 ChessBoardDetector::ChessBoardDetector(const cv::Mat &img, cv::Size patternSize, float squareSize, cv::Mat &cameraMatrix, cv::Mat &distCoeffs)
 {
-    mFindChessBoard = cv::findChessboardCorners(img, patternSize, corners,
-    CALIB_CB_ADAPTIVE_THRESH + CALIB_CB_NORMALIZE_IMAGE
-    + CALIB_CB_FAST_CHECK);
-    if(mFindChessBoard)
-        cv::cornerSubPix(img, corners, Size(11, 11), Size(-1, -1), TermCriteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1));
-    
+    mbFindChessBoard = cv::findChessboardCorners(img, patternSize, mvCorners,
+    cv::CALIB_CB_ADAPTIVE_THRESH + cv::CALIB_CB_NORMALIZE_IMAGE
+    + cv::CALIB_CB_FAST_CHECK);
+
+    if(mbFindChessBoard)
+    {
+        cv::TermCriteria criteria(CV_TERMCRIT_EPS + CV_TERMCRIT_ITER, 30, 0.1);
+        cv::cornerSubPix(img, mvCorners, cv::Size(11, 11), cv::Size(-1, -1), criteria);
+    }
     // initialize chess board corner in object coordinate
     initialChessBoardObjPoint(patternSize, squareSize);
 
     // calculate camera pose in chess board coordinate
     cv::Mat rvec(3,1,cv::DataType<double>::type);
     cv::Mat tvec(3,1,cv::DataType<double>::type);
-    cv::solvePnP(Mat(mvObjPoints), Mat(corners), cameraMatrix, distCoeffs, rvec, tvec);
+    cv::solvePnP(cv::Mat(mvObjPoints), cv::Mat(mvCorners), cameraMatrix, distCoeffs, rvec, tvec);
 
     // converts rotation vector to rotation matrix
     cv::Mat rmat(3,3, cv::DataType<double>::type);
@@ -42,7 +45,7 @@ cv::Mat ChessBoardDetector::getCameraPose()
     return mCameraPose;
 }
 
-void initialChessBoardObjPoint(cv::Size patternSize, float squareSize)
+void ChessBoardDetector::initialChessBoardObjPoint(cv::Size patternSize, float squareSize)
 {
     // empty object point set
     mvObjPoints.clear();
@@ -54,4 +57,6 @@ void initialChessBoardObjPoint(cv::Size patternSize, float squareSize)
         mvObjPoints.push_back(cv::Point3f(float(j*squareSize), float(i*squareSize), 0));
         }
     }
+}
+
 }
