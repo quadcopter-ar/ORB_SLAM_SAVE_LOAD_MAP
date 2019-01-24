@@ -29,6 +29,7 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+#include "ChessBoardDetector.h"
 
 #include <opencv2/opencv.hpp>
 
@@ -104,6 +105,10 @@ public:
 
     // Feature extractor. The right is used only in the stereo case.
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
+
+    // Chess board detector for the first two key frame to initialize the map
+    // Get real scale and calibration the coordinate
+    ChessBoardDetector* mpCBDetector;
 
     // Frame timestamp.
     double mTimeStamp;
