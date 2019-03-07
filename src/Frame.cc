@@ -55,6 +55,10 @@ Frame::Frame(const Frame &frame)
 
     if(!frame.mTcw.empty())
         SetPose(frame.mTcw);
+
+    // Added by Quadcopterar
+    this->mpCBDetector = frame.mpCBDetector;
+    // Quadcopterar..
 }
 
 
@@ -170,6 +174,7 @@ Frame::Frame(const cv::Mat &imGray, const cv::Mat &imDepth, const double &timeSt
     AssignFeaturesToGrid();
 }
 
+// Added by Quadcopterar
 Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, bool isInitialization)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
      mTimeStamp(timeStamp), mK(K.clone()),mDistCoef(distCoef.clone()), mbf(bf), mThDepth(thDepth)
@@ -187,8 +192,9 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
     mvInvLevelSigma2 = mpORBextractorLeft->GetInverseScaleSigmaSquares();
 
     // Chess board detection
-    cv::Size patternSize(7, 6);
-    mpCBDetector = new ChessBoardDetector(imGray, patternSize, 1.0, mK, mDistCoef);
+    // cv::Size patternSize(8, 6);
+    // mpCBDetector = new ChessBoardDetector(imGray, patternSize, 1.0, mK, mDistCoef);
+    mpCBDetector = new ChessBoardDetector(imGray, 9, 6, 1.0, mK, mDistCoef);
 
     // ORB extraction
     ExtractORB(0,imGray);
@@ -229,6 +235,7 @@ Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extra
 
     AssignFeaturesToGrid();
 }
+// Quadcopterar..
 
 Frame::Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth)
     :mpORBvocabulary(voc),mpORBextractorLeft(extractor),mpORBextractorRight(static_cast<ORBextractor*>(NULL)),
@@ -737,5 +744,20 @@ cv::Mat Frame::UnprojectStereo(const int &i)
     else
         return cv::Mat();
 }
+
+// Added by Quadcopterar
+template<class Archive>
+    void Frame::serialize(Archive &ar, const unsigned int version)
+    {
+        ar & mTcw; // camera pose by ORB_SLAM
+
+        // saving mpCBDetector
+        // ar & *mpCBDetector
+        //cv::Size patternSize;
+    }
+
+    template void Frame::serialize(boost::archive::binary_iarchive&, const unsigned int);
+    template void Frame::serialize(boost::archive::binary_oarchive&, const unsigned int);
+// Quadcopterar..
 
 } //namespace ORB_SLAM

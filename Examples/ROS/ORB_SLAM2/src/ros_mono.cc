@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     ros::Publisher pub = nodeHandler.advertise<nav_msgs::Odometry>("MonoPose", 1);
     g_pub = &pub;
     // -----------------
-    ros::Subscriber sub = nodeHandler.subscribe("/camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
+    ros::Subscriber sub = nodeHandler.subscribe("/cv_camera/image_raw", 1, &ImageGrabber::GrabImage,&igb);
     
     //Control control;
     //ros::Subscriber subControl = nodeHandler.subscribe<std_msgs::UInt8>("/orb_slam2/control", 1, &Control::callback, &control);
@@ -162,23 +162,15 @@ void ImageGrabber::GrabImage(const sensor_msgs::ImageConstPtr& msg)
     if(g_pub != NULL) {
         nav_msgs::Odometry msg;
         msg.header.stamp = ros::Time::now();
-        msg.pose.pose.position.x = M.m[12]; //tx
-        msg.pose.pose.position.y = M.m[13]; //ty
-        msg.pose.pose.position.z = M.m[14]; //tz
+        // msg.pose.pose.position.x = M.m[12]; //tx
+        // msg.pose.pose.position.y = M.m[13]; //ty
+        // msg.pose.pose.position.z = M.m[14]; //tz
+        msg.pose.pose.position.x = M.m[12] * mpSLAM->real_world_scale; //tx
+        msg.pose.pose.position.y = M.m[13] * mpSLAM->real_world_scale; //ty
+        msg.pose.pose.position.z = M.m[14] * mpSLAM->real_world_scale; //tz
         // Orientation in quaternion.
         float qw, qx, qy, qz;
         rotationMatrixToQuaternion(M, qw, qx, qy, qz);
-
-        
-        // Nehal & Min
-        if(matrixIsIdentity(M))
-        {
-            // for(int i = 0; i < 15; i++)
-            // {
-            //     std::cout<<M.m[i]<<std::endl;
-            // }
-            std::cout<<qw<<"\t"<<qx<<"\t"<<qy<<"\t"<<qz<<std::endl;
-        }
         
         msg.pose.pose.orientation.w = qw;
         msg.pose.pose.orientation.x = qx;

@@ -29,7 +29,10 @@
 #include "ORBVocabulary.h"
 #include "KeyFrame.h"
 #include "ORBextractor.h"
+// Added by Quadcopterar
 #include "ChessBoardDetector.h"
+#include "BoostArchiver.h"
+// Quadcopterar..
 
 #include <opencv2/opencv.hpp>
 
@@ -58,8 +61,10 @@ public:
     // Constructor for Monocular cameras.
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth);
 
+    // Added by Quadcopterar
     // Construtor for initialization frame
     Frame(const cv::Mat &imGray, const double &timeStamp, ORBextractor* extractor,ORBVocabulary* voc, cv::Mat &K, cv::Mat &distCoef, const float &bf, const float &thDepth, bool isInitialization);
+    // Quadcopterar..
 
     // Extract ORB on the image. 0 for left image and 1 for right image.
     void ExtractORB(int flag, const cv::Mat &im);
@@ -109,9 +114,11 @@ public:
     // Feature extractor. The right is used only in the stereo case.
     ORBextractor* mpORBextractorLeft, *mpORBextractorRight;
 
+    // Added by Qiadcopterar
     // Chess board detector for the first two key frame to initialize the map
     // Get real scale and calibration the coordinate
     ChessBoardDetector* mpCBDetector;
+    // Quadcopterar..
 
     // Frame timestamp.
     double mTimeStamp;
@@ -197,7 +204,12 @@ public:
 
 
 private:
-
+    // Added by Quadcopterar
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version);
+    // Quadcopterar..
+    
     // Undistort keypoints given OpenCV distortion parameters.
     // Only for the RGB-D case. Stereo must be already rectified!
     // (called in the constructor).

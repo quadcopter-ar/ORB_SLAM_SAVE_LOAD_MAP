@@ -22,9 +22,9 @@
 #ifndef SYSTEM_H
 #define SYSTEM_H
 
-#include<string>
-#include<thread>
-#include<opencv2/core/core.hpp>
+#include <string>
+#include <thread>
+#include <opencv2/core/core.hpp>
 
 #include "Tracking.h"
 #include "FrameDrawer.h"
@@ -35,6 +35,10 @@
 #include "KeyFrameDatabase.h"
 #include "ORBVocabulary.h"
 #include "Viewer.h"
+// Added by Quadcopterar
+#include "ChessBoardDetector.h"
+#include <cmath>
+// Quadcopterar..
 
 #include "BoostArchiver.h"
 // for map file io
@@ -183,6 +187,13 @@ private:
     std::vector<MapPoint*> mTrackedMapPoints;
     std::vector<cv::KeyPoint> mTrackedKeyPointsUn;
     std::mutex mMutexState;
+
+    // Flag for scaling
+    bool scalingOnce;
+    
+public:
+    // Scale
+    float real_world_scale;
 };
 
 }// namespace ORB_SLAM

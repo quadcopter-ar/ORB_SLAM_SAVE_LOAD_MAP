@@ -65,10 +65,14 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
 
     cv::FileNode mapfilen = fsSettings["Map.mapfile"];
     bool bReuseMap = false;
+    //cout<< typeid(mapfilen) <<endl;
     if (!mapfilen.empty())
     {
         mapfile = (string)mapfilen;
         cout << "file is not empty" << endl;
+        // for(auto& temp:mapfilen)
+        //     cout<<temp<<endl;
+        //cout << &mapfile << endl;
     }
 
     //Load ORB Vocabulary
@@ -90,7 +94,8 @@ System::System(const string &strVocFile, const string &strSettingsFile, const eS
     }
     cout << "Vocabulary loaded!" << endl << endl;
 
-
+    scalingOnce = true;
+    real_world_scale = 1;
     //Create KeyFrame Database
     //Create the Map
     if (!mapfile.empty() && LoadMap(mapfile))
@@ -557,6 +562,105 @@ void System::SaveMap(const string &filename)
 }
 bool System::LoadMap(const string &filename)
 {
+    // Added by Quadcopter
+    /*When loading the map, we first calculate real world scale*/
+    // Step 1. Load the two initialization frames
+    ChessBoardDetector ref_frame_cbd, cur_frame_cbd;
+    // Frame ref_frame, cur_frame;
+
+    std::cout << "Loading stored objects" << std::endl;
+
+    std::ifstream in_ref("ReferenceFrameCBD", std::ios_base::binary);
+    if (!in_ref)
+    {
+        cerr << "Cannot Open file: ReferenceFrame. You need create it first!" << std::endl;
+    }
+    boost::archive::binary_iarchive ia_ref(in_ref, boost::archive::no_header);
+    ia_ref >> ref_frame_cbd;
+    in_ref.close();
+
+    std::ifstream in_curr("CurrentFrameCBD", std::ios_base::binary);
+    if (!in_curr)
+    {
+        cerr << "Cannot Open file: CurrentFrame. You need create it first!" << std::endl;
+    }
+    boost::archive::binary_iarchive ia_curr(in_curr, boost::archive::no_header);
+    ia_curr >> cur_frame_cbd;
+    in_curr.close();
+//-----------------
+    // std::ifstream in_ref2("ReferenceFrameObj", std::ios_base::binary);
+    // if (!in_ref2)
+    // {
+    //     cerr << "Cannot Open file: ReferenceFrame. You need create it first!" << std::endl;
+    // }
+    // boost::archive::binary_iarchive ia_ref2(in_ref2, boost::archive::no_header);
+    // ia_ref2 >> ref_frame;
+    // in_ref2.close();
+
+    // std::ifstream in_curr2("CurrentFrameObj", std::ios_base::binary);
+    // if (!in_curr2)
+    // {
+    //     cerr << "Cannot Open file: CurrentFrame. You need create it first!" << std::endl;
+    // }
+    // boost::archive::binary_iarchive ia_curr2(in_curr2, boost::archive::no_header);
+    // ia_curr2 >> cur_frame;
+    // in_curr2.close();
+
+    std::cout << "Stored objects loaded" << std::endl;
+
+    std::cout << "ref_frame_cbd.width: " << ref_frame_cbd.width << std::endl;
+    std::cout << "cur_frame_cbd.width: " << cur_frame_cbd.width << std::endl;
+    std::cout << "ref_frame_cbd.height: " << ref_frame_cbd.height << std::endl;
+    std::cout << "cur_frame_cbd.height: " << cur_frame_cbd.height << std::endl;
+    std::cout << "ref_frame_cbd.squareSize: " << ref_frame_cbd.squareSize << std::endl;
+    std::cout << "cur_frame_cbd.squareSize: " << cur_frame_cbd.squareSize << std::endl;
+
+    // Step 2. Detect chessboard in the two frames
+    ref_frame_cbd.findChessBoard();
+    std::cout << "3..." << std::endl;
+    cur_frame_cbd.findChessBoard();
+
+    // Step 3. Calculate pose in the two frames
+    cv::Mat refFramePose_world = ref_frame_cbd.getCameraPose(); // camera pose of the first frame relative to the chessboard
+    cv::Mat curFramePose_world = cur_frame_cbd.getCameraPose(); // camera pose of the second frame relative to the chessboard
+
+
+
+    // cv::Vec3d ref_to_curr_world(refFramePose_world[0][3] - curFramePose_world[0][3], 
+    //                     refFramePose_world[1][3] - curFramePose_world[1][3],
+    //                     refFramePose_world[2][3] - curFramePose_world[2][3]);
+    cv::Vec3f ref_to_curr_world(refFramePose_world.at<float>(0, 3) - curFramePose_world.at<float>(0, 3), 
+                        refFramePose_world.at<float>(1, 3) - curFramePose_world.at<float>(1, 3),
+                        refFramePose_world.at<float>(2, 3) - curFramePose_world.at<float>(2, 3));
+    float realWorldLen = sqrt(pow(ref_to_curr_world[0], 2) + pow(ref_to_curr_world[1], 2) + pow(ref_to_curr_world[2], 2));
+
+    std::cout << "refFramePose_world" << refFramePose_world << std::endl;
+    std::cout << "curFramePose_world" << curFramePose_world << std::endl;
+    std::cout << "realWorldLen: " << realWorldLen << std::endl;
+
+    cv::Mat refFramePose_slam = ref_frame_cbd.getFrameObjectPose(); // camera pose of the first frame relative to the chessboard
+    cv::Mat curFramePose_slam = cur_frame_cbd.getFrameObjectPose(); // camera pose of the second frame relative to the chessboard
+
+    // cv::Vec3d ref_to_curr_slam(refFramePose_slam[0][3] - curFramePose_slam[0][3], 
+    //                     refFramePose_slam[1][3] - curFramePose_slam[1][3],
+    //                     refFramePose_slam[2][3] - curFramePose_slam[2][3]);
+    cv::Vec3f ref_to_curr_slam(refFramePose_slam.at<float>(0, 3) - curFramePose_slam.at<float>(0, 3), 
+                        refFramePose_slam.at<float>(1, 3) - curFramePose_slam.at<float>(1, 3),
+                        refFramePose_slam.at<float>(2, 3) - curFramePose_slam.at<float>(2, 3));
+    float slamLen = sqrt(pow(ref_to_curr_slam[0], 2) + pow(ref_to_curr_slam[1], 2) + pow(ref_to_curr_slam[2], 2));
+
+    std::cout << "refFramePose_slam" << refFramePose_slam << std::endl;
+    std::cout << "curFramePose_slam" << curFramePose_slam << std::endl;
+    std::cout << "slamLen: " << slamLen << std::endl;
+
+    // Step 4. Calculate Scale
+    // Write code to calculate scale
+    // float scale = realWorldLen/slamLen;
+    real_world_scale = realWorldLen/slamLen;
+    // std::cout << "NEW SCALE: "<< scale << std::endl;
+
+    // Quadcopterar..
+    // Step 5. Load Map from mapfile
     std::ifstream in(filename, std::ios_base::binary);
     if (!in)
     {
@@ -567,6 +671,32 @@ bool System::LoadMap(const string &filename)
     boost::archive::binary_iarchive ia(in, boost::archive::no_header);
     ia >> mpMap;
     ia >> mpKeyFrameDatabase;
+    /*Map object loaded. Here we want to add the scaling code*/
+    // // Step 6. Rescale the map points
+    // if(scalingOnce)
+    // {
+    //     scalingOnce = false;
+    //     std::vector<KeyFrame*> keyFrames =(mpMap -> GetAllKeyFrames());
+    //     std::vector<MapPoint*> mapPoints =(mpMap -> GetAllMapPoints());
+
+    //     // Rescale map points
+    //     for(unsigned int i = 0 ; i < mapPoints.size(); i++)
+    //     {
+    //        MapPoint *pMP = mapPoints[i];
+    //        pMP->SetWorldPos(pMP->GetWorldPos()*scale);
+    //     }
+
+    //     // Rescale keyframes
+    //     for(unsigned int i = 0 ; i < keyFrames.size(); i++)
+    //     {
+    //         KeyFrame *kf = keyFrames[i];
+
+    //         cv::Mat Tc2w = kf->GetPose();
+    //         Tc2w.col(3).rowRange(0,3) = Tc2w.col(3).rowRange(0,3)*scale;
+    //         kf->SetPose(Tc2w);
+    //     }
+    // }
+    
     mpKeyFrameDatabase->SetORBvocabulary(mpVocabulary);
     cout << " ...done" << std::endl;
     cout << "Map Reconstructing" << flush;
