@@ -21,4 +21,7 @@ Vocabulary/ORBvoc.txt
 build/
 *~
 lib/
+CurrentFrameCBD
+ReferenceFrameCBD
+map.bin
 
